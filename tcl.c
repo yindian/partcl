@@ -6,7 +6,9 @@
 #include "tcl.h"
 
 
-#ifndef TEST
+#ifndef TCL_TEST
+#ifdef TCL_STANDALONE
+
 #define CHUNK 1024
 
 int main() {
@@ -54,4 +56,5 @@ int main() {
 
   return 0;
 }
+#endif
 #endif
