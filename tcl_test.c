@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #define TEST
-#include "tcl.c"
+#include "tcllib.c"
 
 int status = 0;
 #define FAIL(...)                                                              \
