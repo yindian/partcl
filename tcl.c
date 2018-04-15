@@ -3,18 +3,25 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "tcl.h"
+
 #if 0
-#define DBG printf
+#	define DBG printf
 #else
-#define DBG(...)
+#	define DBG(...)
 #endif
 
 struct tcl;
 int tcl_eval(struct tcl *tcl, const char *s, size_t len);
 
-/* Token type and control flow constants */
-enum { TCMD, TWORD, TPART, TERROR };
-enum { FERROR, FNORMAL, FRETURN, FBREAK, FAGAIN };
+#ifndef TCL_DISABLE_PUTS
+  int (*putsFunc)(const char *) = puts;
+#endif
+
+void *(*allocFunc)(size_t) = malloc;
+void (*freeFunc)(void *) = free;
+
+
 
 static int tcl_is_special(char c, int q) {
   return (c == '$' || (!q && (c == '{' || c == '}' || c == ';' || c == '\r' ||
@@ -89,35 +96,17 @@ int tcl_next(const char *s, size_t n, const char **from, const char **to,
   }
 }
 
-/* A helper parser struct and macro (requires C99) */
-struct tcl_parser {
-  const char *from;
-  const char *to;
-  const char *start;
-  const char *end;
-  int q;
-  int token;
-};
-#define tcl_each(s, len, skiperr)                                              \
-  for (struct tcl_parser p = {NULL, NULL, s, s + len, 0, TERROR};              \
-       p.start < p.end &&                                                      \
-           (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to,     \
-                                 &p.q)) != TERROR) ||                          \
-            skiperr);                                                          \
-       p.start = p.to)
-
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
-typedef char tcl_value_t;
 
 const char *tcl_string(tcl_value_t *v) { return (char *)v; }
 int tcl_int(tcl_value_t *v) { return atoi((char *)v); }
 int tcl_length(tcl_value_t *v) { return v == NULL ? 0 : strlen(v); }
 
-void tcl_free(tcl_value_t *v) { free(v); }
+void tcl_free(tcl_value_t *v) { (*freeFunc)(v); }
 
 tcl_value_t *tcl_append_string(tcl_value_t *v, const char *s, size_t len) {
   size_t n = tcl_length(v);
@@ -153,7 +142,7 @@ int tcl_list_length(tcl_value_t *v) {
   return count;
 }
 
-void tcl_list_free(tcl_value_t *v) { free(v); }
+void tcl_list_free(tcl_value_t *v) { (*freeFunc)(v); }
 
 tcl_value_t *tcl_list_at(tcl_value_t *v, int index) {
   int i = 0;
@@ -203,36 +192,16 @@ tcl_value_t *tcl_list_append(tcl_value_t *v, tcl_value_t *tail) {
 /* ----------------------------- */
 /* ----------------------------- */
 
-typedef int (*tcl_cmd_fn_t)(struct tcl *, tcl_value_t *, void *);
-
-struct tcl_cmd {
-  tcl_value_t *name;
-  int arity;
-  tcl_cmd_fn_t fn;
-  void *arg;
-  struct tcl_cmd *next;
-};
-
-struct tcl_var {
-  tcl_value_t *name;
-  tcl_value_t *value;
-  struct tcl_var *next;
-};
-
-struct tcl_env {
-  struct tcl_var *vars;
-  struct tcl_env *parent;
-};
 
 static struct tcl_env *tcl_env_alloc(struct tcl_env *parent) {
-  struct tcl_env *env = malloc(sizeof(*env));
+  struct tcl_env *env = (*allocFunc)(sizeof(*env));
   env->vars = NULL;
   env->parent = parent;
   return env;
 }
 
 static struct tcl_var *tcl_env_var(struct tcl_env *env, tcl_value_t *name) {
-  struct tcl_var *var = malloc(sizeof(struct tcl_var));
+  struct tcl_var *var = (*allocFunc)(sizeof(struct tcl_var));
   var->name = tcl_dup(name);
   var->next = env->vars;
   var->value = tcl_alloc("", 0);
@@ -247,9 +216,9 @@ static struct tcl_env *tcl_env_free(struct tcl_env *env) {
     env->vars = env->vars->next;
     tcl_free(var->name);
     tcl_free(var->value);
-    free(var);
+    (*freeFunc)(var);
   }
-  free(env);
+  (*freeFunc)(env);
   return parent;
 }
 
@@ -374,7 +343,7 @@ int tcl_eval(struct tcl *tcl, const char *s, size_t len) {
 /* --------------------------------- */
 void tcl_register(struct tcl *tcl, const char *name, tcl_cmd_fn_t fn, int arity,
                   void *arg) {
-  struct tcl_cmd *cmd = malloc(sizeof(struct tcl_cmd));
+  struct tcl_cmd *cmd = (*allocFunc)(sizeof(struct tcl_cmd));
   cmd->name = tcl_alloc(name, strlen(name));
   cmd->fn = fn;
   cmd->arg = arg;
@@ -400,10 +369,14 @@ static int tcl_cmd_subst(struct tcl *tcl, tcl_value_t *args, void *arg) {
 
 #ifndef TCL_DISABLE_PUTS
 static int tcl_cmd_puts(struct tcl *tcl, tcl_value_t *args, void *arg) {
-  tcl_value_t *text = tcl_list_at(args, 1);
-  puts(tcl_string(text));
-  putchar('\n');
-  return tcl_result(tcl, FNORMAL, text);
+  if(putsFunc) {
+    tcl_value_t *text = tcl_list_at(args, 1);
+    putsFunc(tcl_string(text));
+    putsFunc("\n");
+    return tcl_result(tcl, FNORMAL, text);
+  } else {
+    return 0;
+  }
 }
 #endif
 
@@ -561,7 +534,23 @@ static int tcl_cmd_math(struct tcl *tcl, tcl_value_t *args, void *arg) {
 }
 #endif
 
-void tcl_init(struct tcl *tcl) {
+
+#ifndef TCL_DISABLE_PUTS
+void tcl_set_puts(int (*pFunc)(const char *)) {
+	putsFunc = pFunc;
+}
+#endif
+
+void tcl_set_malloc(void *(*aFunc)(size_t)) {
+	allocFunc = aFunc;
+}
+
+void tcl_set_free(void (*fFunc)(void *)) {
+	freeFunc = fFunc;
+	
+}
+
+void tcl_init(struct tcl *tcl) {  
   tcl->env = tcl_env_alloc(NULL);
   tcl->result = tcl_alloc("", 0);
   tcl->cmds = NULL;
@@ -592,8 +581,8 @@ void tcl_destroy(struct tcl *tcl) {
     struct tcl_cmd *cmd = tcl->cmds;
     tcl->cmds = tcl->cmds->next;
     tcl_free(cmd->name);
-    free(cmd->arg);
-    free(cmd);
+    (*freeFunc)(cmd->arg);
+    (*freeFunc)(cmd);
   }
   tcl_free(tcl->result);
 }
@@ -604,7 +593,7 @@ void tcl_destroy(struct tcl *tcl) {
 int main() {
   struct tcl tcl;
   int buflen = CHUNK;
-  char *buf = malloc(buflen);
+  char *buf = (*allocFunc)(buflen);
   int i = 0;
 
   tcl_init(&tcl);
