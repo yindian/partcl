@@ -194,14 +194,14 @@ tcl_value_t *tcl_list_append(tcl_value_t *v, tcl_value_t *tail) {
 /* ----------------------------- */
 
 
-static struct tcl_env *tcl_env_alloc(struct tcl_env *parent) {
+struct tcl_env *tcl_env_alloc(struct tcl_env *parent) {
   struct tcl_env *env = (*allocFunc)(sizeof(*env));
   env->vars = NULL;
   env->parent = parent;
   return env;
 }
 
-static struct tcl_var *tcl_env_var(struct tcl_env *env, tcl_value_t *name) {
+struct tcl_var *tcl_env_var(struct tcl_env *env, tcl_value_t *name) {
   struct tcl_var *var = (*allocFunc)(sizeof(struct tcl_var));
   var->name = tcl_dup(name);
   var->next = env->vars;
@@ -210,7 +210,7 @@ static struct tcl_var *tcl_env_var(struct tcl_env *env, tcl_value_t *name) {
   return var;
 }
 
-static struct tcl_env *tcl_env_free(struct tcl_env *env) {
+struct tcl_env *tcl_env_free(struct tcl_env *env) {
   struct tcl_env *parent = env->parent;
   while (env->vars) {
     struct tcl_var *var = env->vars;

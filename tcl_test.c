@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define TCL_TEST
+#ifdef TCL_TEST
 #include "tcllib.c"
 
 int status = 0;
@@ -22,3 +22,4 @@ int main() {
   test_math();
   return status;
 }
+#endif
