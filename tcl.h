@@ -1,6 +1,10 @@
 #ifndef __TCL_H__
 #	define __TCL_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct tcl;
 
 /* Token type and control flow constants */
@@ -92,5 +96,8 @@ void tcl_register(struct tcl *tcl, const char *name, tcl_cmd_fn_t fn, int arity,
                   void *arg);
 void tcl_init(struct tcl *tcl); 
 void tcl_destroy(struct tcl *tcl);
- 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

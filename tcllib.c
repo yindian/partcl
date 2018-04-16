@@ -480,6 +480,7 @@ static int tcl_cmd_while(struct tcl *tcl, tcl_value_t *args, void *arg) {
       return FERROR;
     }
   }
+  return FERROR;
 }
 
 #ifndef TCL_DISABLE_MATH
