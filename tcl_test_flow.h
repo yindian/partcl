@@ -1,5 +1,6 @@
 #ifndef TCL_TEST_FLOW_H
 #define TCL_TEST_FLOW_H
+#ifdef TCL_TEST
 
 static void test_flow() {
   printf("\n");
@@ -55,5 +56,5 @@ static void test_flow() {
              "0");
   tcl_destroy(&tcl);
 }
-
+#endif
 #endif /* TCL_TEST_FLOW_H */

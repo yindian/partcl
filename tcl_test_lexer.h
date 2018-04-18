@@ -1,5 +1,6 @@
 #ifndef TCL_TEST_LEXER_H
 #define TCL_TEST_LEXER_H
+#ifdef TCL_TEST
 
 #include <string.h>
 #include <stdarg.h>
@@ -147,5 +148,6 @@ static void test_lexer() {
   check_tokens_len("set a {\nhello\n}\n", 16, 4, TWORD, "set", TWORD, "a",
                    TWORD, "{\nhello\n}", TCMD, "");
 }
-
+#endif
 #endif /* TCL_TEST_LEXER_H */
+
