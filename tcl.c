@@ -1,22 +1,6 @@
 #include <stdlib.h>
-
 #include <stdio.h>
 #include <string.h>
-
-#if 0
-#define DBG printf
-#else
-#define DBG(...)
-#endif
-
-#define MAX_VAR_LENGTH 256
-
-struct tcl;
-int tcl_eval(struct tcl *tcl, const char *s, size_t len);
-
-/* Token type and control flow constants */
-enum { TCMD, TWORD, TPART, TERROR };
-enum { FERROR, FNORMAL, FRETURN, FBREAK, FAGAIN };
 
 static int tcl_is_special(char c, int q) {
   return (c == '$' || (!q && (c == '{' || c == '}' || c == ';' || c == '\r' ||
@@ -95,23 +79,6 @@ int tcl_next(const char *s, size_t n, const char **from, const char **to,
   }
   return (tcl_is_space(s[i]) || tcl_is_end(s[i])) ? TWORD : TPART;
 }
-
-/* A helper parser struct and macro (requires C99) */
-struct tcl_parser {
-  const char *from;
-  const char *to;
-  const char *start;
-  const char *end;
-  int q;
-  int token;
-};
-#define tcl_each(s, len, skiperr)                                              \
-  for (struct tcl_parser p = {NULL, NULL, (s), (s) + (len), 0, TERROR};        \
-       p.start < p.end &&                                                      \
-       (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to,         \
-                             &p.q)) != TERROR) ||                              \
-        (skiperr));                                                            \
-       p.start = p.to)
 
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
