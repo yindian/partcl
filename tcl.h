@@ -29,16 +29,16 @@ struct tcl_parser {
   int token;
 };
 #define tcl_each(s, len, skiperr)                                              \
-  for (struct tcl_parser p = {NULL, NULL, s, s + len, 0, TERROR};              \
-       p.start < p.end &&                                                      \
-           (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to,     \
-                                 &p.q)) != TERROR) ||                          \
-            skiperr);                                                          \
+  for (struct tcl_parser p = {NULL, NULL, (s), (s) + (len), 0, TERROR};        \
+       p.start < p.end                                                         \
+         && (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to,    \
+                                 &p.q)) != TERROR)                             \
+         || (skiperr));                                                        \
        p.start = p.to)
 
 
 typedef char tcl_value_t;
-					  
+
 const char *tcl_string(tcl_value_t *v);
 int tcl_int(tcl_value_t *v);
 int tcl_length(tcl_value_t *v);

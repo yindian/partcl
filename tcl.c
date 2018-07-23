@@ -21,11 +21,13 @@ int main() {
   while (1) {
     int inp = fgetc(stdin);
 
-    if (i > buflen - 1)
+    if (i > buflen - 1) {
       buf = realloc(buf, buflen += CHUNK);
+    }
 
-    if (inp == 0 || inp == EOF)
+    if (inp == 0 || inp == EOF) {
       break;
+    }
 
     buf[i++] = inp;
 
@@ -49,7 +51,9 @@ int main() {
     }
   }
 
-  if(i) {
+  free(buf);
+
+  if (i) {
     printf("incomplete input\n");
     return -1;
   }
