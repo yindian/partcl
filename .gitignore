@@ -1,2 +1,8 @@
 *.o
 *.a
+
+tcl
+tcl_test
+
+*.dSYM/
+
