@@ -1,8 +1,7 @@
-
 tcl
-tcl.o
 tcl_test
-tcl_test.gcda
-tcl_test.gcno
-tcl_test.o
 
+*.gcda
+*.gcno
+*.dSYM/
+*.o

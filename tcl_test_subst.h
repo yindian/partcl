@@ -1,27 +1,6 @@
 #ifndef TCL_TEST_SUBST_H
 #define TCL_TEST_SUBST_H
 
-static void check_eval(struct tcl *tcl, const char *s, char *expected) {
-  int destroy = 0;
-  if (tcl == NULL) {
-    struct tcl tmp;
-    tcl_init(&tmp);
-    tcl = &tmp;
-    destroy = 1;
-  }
-  if (tcl_eval(tcl, s, strlen(s) + 1) == FERROR) {
-    FAIL("eval returned error: %s, (%s)\n", tcl_string(tcl->result), s);
-  } else if (strcmp(tcl_string(tcl->result), expected) != 0) {
-    FAIL("Expected %s, but got %s. (%s)\n", expected, tcl_string(tcl->result),
-         s);
-  } else {
-    printf("OK: %s -> %s\n", s, expected);
-  }
-  if (destroy) {
-    tcl_destroy(tcl);
-  }
-}
-
 static void test_subst() {
   printf("\n");
   printf("###################\n");
