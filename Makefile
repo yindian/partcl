@@ -5,7 +5,7 @@ LDFLAGS ?= -O2
 TCLBIN := tcl
 
 TEST_CC := clang
-TEST_CFLAGS := -O2 -g -std=c99 -pedantic -fprofile-arcs -ftest-coverage
+TEST_CFLAGS := -O2 -g -std=c99 -pedantic
 TEST_LDFLAGS := $(TEST_CFLAGS)
 TCLTESTBIN := tcl_test
 
