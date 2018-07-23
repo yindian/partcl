@@ -15,19 +15,21 @@ static void va_check_tokens(const char* s, size_t len, int count, va_list ap)
     char* token = va_arg(ap, char*);
     j++;
     if (p.token != type) {
-      FAIL("Expected token #%d type %d, but found %d (%.*s)\n", j, type,
+      FAIL("ERROR: Expected token #%d type %d, but found %d (%.*s)\n", j, type,
           p.token, (int)len, s);
     } else if (p.token == TERROR) {
       break;
     } else {
       if ((p.token == TPART || p.token == TWORD) && (strlen(token) != p.to - p.from || strncmp(p.from, token, p.to - p.from) != 0)) {
-        FAIL("Expected %s, but found %.*s (%s)\n", token, (int)(p.to - p.from),
+        FAIL("ERROR: Expected %s, but found %.*s (%s)\n", token, (int)(p.to - p.from),
             p.from, s);
+        status = 2;
       }
     }
   }
   if (j != count) {
-    FAIL("Expected %d tokens, but found %d (%s)\n", count, j, s);
+    FAIL("ERROR: Expected %d tokens, but found %d (%s)\n", count, j, s);
+    status = 2;
   } else {
     printf("OK: %.*s\n", (int)len, s);
   }

@@ -22,8 +22,6 @@ enum { FERROR,
 void tcl_set_puts(int (*pFunc)(const char*));
 #endif
 
-void tcl_set_malloc(void* (*aFunc)(size_t));
-void tcl_set_free(void (*fFunc)(void*));
 
 /* A helper parser struct and macro (requires C99) */
 struct tcl_parser {
@@ -41,11 +39,19 @@ struct tcl_parser {
 
 typedef char tcl_value_t;
 
+#ifndef TCL_DISABLE_MALLOC
+
+#define TCL_FREE(m) free(m)
+#define TCL_MALLOC(m) malloc(m)
+#define TCL_REALLOC(m, n) realloc(m, n)
+
+#endif
+
 const char* tcl_string(tcl_value_t* v);
 int tcl_int(tcl_value_t* v);
 int tcl_length(tcl_value_t* v);
 
-void tcl_free(tcl_value_t* v);
+/* void tcl_free(tcl_value_t* v); */
 
 int tcl_next(const char* s, size_t n, const char** from, const char** to,
     int* q);
