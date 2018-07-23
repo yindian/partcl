@@ -80,4 +80,3 @@ static void test_subst() {
 #endif
 
 #endif /* TCL_TEST_SUBST_H */
-

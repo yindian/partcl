@@ -5,11 +5,10 @@
 
 #include "tcl.h"
 
-
 #if 0
-#	define DBG printf
+#define DBG printf
 #else
-#	define DBG(...)
+#define DBG(...)
 #endif
 
 #define MAX_VAR_LENGTH 256
@@ -18,18 +17,17 @@ struct tcl;
 int tcl_eval(struct tcl *tcl, const char *s, size_t len);
 
 #ifndef TCL_DISABLE_PUTS
-  int (*putsFunc)(const char *) = puts;
+int (*putsFunc)(const char *) = puts;
 #endif
 
 void *(*allocFunc)(size_t) = malloc;
 void (*freeFunc)(void *) = free;
 
-
-
 static int tcl_is_special(char c, int q) {
-  return (c == '$' || (!q && (c == '{' || c == '}' || c == ';' || c == '\r' ||
-                              c == '\n')) ||
-          c == '[' || c == ']' || c == '"' || c == '\0');
+  return (
+      c == '$' ||
+      (!q && (c == '{' || c == '}' || c == ';' || c == '\r' || c == '\n')) ||
+      c == '[' || c == ']' || c == '"' || c == '\0');
 }
 
 static int tcl_is_space(char c) { return (c == ' ' || c == '\t'); }
@@ -87,12 +85,12 @@ int tcl_next(const char *s, size_t n, const char **from, const char **to,
     if (n < 2 || (!tcl_is_space(s[1]) && !tcl_is_end(s[1]))) {
       return TERROR;
     }
-      *from = *to = s + 1;
-      return TWORD;
+    *from = *to = s + 1;
+    return TWORD;
   } else {
     while (i < n && (*q || !tcl_is_space(s[i])) && !tcl_is_special(s[i], *q)) {
       i++;
-  }
+    }
   }
   *to = s + i;
   if (i == n) {
@@ -199,7 +197,6 @@ tcl_value_t *tcl_list_append(tcl_value_t *v, tcl_value_t *tail) {
 /* ----------------------------- */
 /* ----------------------------- */
 
-
 struct tcl_env *tcl_env_alloc(struct tcl_env *parent) {
   struct tcl_env *env = (*allocFunc)(sizeof(*env));
   env->vars = NULL;
@@ -228,8 +225,6 @@ struct tcl_env *tcl_env_free(struct tcl_env *env) {
   (*freeFunc)(env);
   return parent;
 }
-
-
 
 tcl_value_t *tcl_var(struct tcl *tcl, tcl_value_t *name, tcl_value_t *v) {
   DBG("var(%s := %.*s)\n", tcl_string(name), tcl_length(v), tcl_string(v));
@@ -384,7 +379,7 @@ static int tcl_cmd_subst(struct tcl *tcl, tcl_value_t *args, void *arg) {
 #ifndef TCL_DISABLE_PUTS
 static int tcl_cmd_puts(struct tcl *tcl, tcl_value_t *args, void *arg) {
   (void)arg;
-  if(putsFunc) {
+  if (putsFunc) {
     tcl_value_t *text = tcl_list_at(args, 1);
     putsFunc(tcl_string(text));
     putsFunc("\n");
@@ -558,23 +553,15 @@ static int tcl_cmd_math(struct tcl *tcl, tcl_value_t *args, void *arg) {
 }
 #endif
 
-
 #ifndef TCL_DISABLE_PUTS
-void tcl_set_puts(int (*pFunc)(const char *)) {
-	putsFunc = pFunc;
-}
+void tcl_set_puts(int (*pFunc)(const char *)) { putsFunc = pFunc; }
 #endif
 
-void tcl_set_malloc(void *(*aFunc)(size_t)) {
-	allocFunc = aFunc;
-}
+void tcl_set_malloc(void *(*aFunc)(size_t)) { allocFunc = aFunc; }
 
-void tcl_set_free(void (*fFunc)(void *)) {
-	freeFunc = fFunc;
-	
-}
+void tcl_set_free(void (*fFunc)(void *)) { freeFunc = fFunc; }
 
-void tcl_init(struct tcl *tcl) {  
+void tcl_init(struct tcl *tcl) {
   tcl->env = tcl_env_alloc(NULL);
   tcl->result = tcl_alloc("", 0);
   tcl->cmds = NULL;
@@ -610,4 +597,4 @@ void tcl_destroy(struct tcl *tcl) {
   }
   tcl_free(tcl->result);
 }
-        break;
+break;

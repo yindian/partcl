@@ -5,7 +5,6 @@
 
 #include "tcl.h"
 
-
 #ifndef TCL_TEST
 #ifdef TCL_STANDALONE
 
@@ -14,7 +13,7 @@
 int main() {
   struct tcl tcl;
   int buflen = CHUNK;
-  char* buf = malloc(buflen);
+  char *buf = malloc(buflen);
   int i = 0;
 
   tcl_init(&tcl);
@@ -63,4 +62,3 @@ int main() {
 }
 #endif
 #endif
-

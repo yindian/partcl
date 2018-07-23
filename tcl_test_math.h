@@ -27,4 +27,3 @@ static void test_math() {
 }
 #endif
 #endif /* TCL_TEST_MATH_H */
-
