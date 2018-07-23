@@ -1,5 +1,6 @@
 #ifndef TCL_TEST_SUBST_H
 #define TCL_TEST_SUBST_H
+#ifdef TCL_TEST
 
 static void check_eval(struct tcl *tcl, const char *s, char *expected) {
   int destroy = 0;
@@ -76,5 +77,7 @@ static void test_subst() {
   /* XXX most command involving unpaired braces (e.g. in quotes) don't work
    * because of the dirty list implementation */
 }
+#endif
 
 #endif /* TCL_TEST_SUBST_H */
+

@@ -142,6 +142,19 @@ static struct tcl_env *tcl_env_free(struct tcl_env *env);
 Variables are implemented as a single-linked list, each variable is a pair of
 values (name + value) and a pointer to the next variable.
 
+Additionally three functions have been adding to further aid in embedding 
+Picol in embedded systems:
+
+```
+void tcl_set_puts(int (*pFunc)(const char *));
+void tcl_set_malloc(void *(*aFunc)(size_t));
+void tcl_set_free(void (*fFunc)(void *));
+```
+
+These allow for specifying user define functions for outputting a 
+string, as well as allocating and freeing memory.  The latter allows to have 
+a predictable and non-fragmentable segment of memory to use.
+
 ## Interpreter
 
 Partcl interpreter is a simple structure `struct tcl` which keeps the current

@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#define TEST
-#include "tcl.c"
+#ifdef TCL_TEST
+#include "tcllib.c"
 
 int status = 0;
 #define FAIL(...)                                                              \
@@ -25,3 +25,4 @@ int main() {
   test_math();
   return status;
 }
+#endif
