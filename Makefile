@@ -24,7 +24,6 @@ tcl_test.o: tcl_test.c tcllib.c \
 
 format:
 	clang-format -i *.c *.h
-	cloc tcl.c
 
 clean:
 	rm -f $(TCLBIN) $(TCLTESTBIN) *.o *.gcda *.gcno
