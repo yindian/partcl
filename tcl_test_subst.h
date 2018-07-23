@@ -2,7 +2,8 @@
 #define TCL_TEST_SUBST_H
 #ifdef TCL_TEST
 
-static void check_eval(struct tcl *tcl, const char *s, char *expected) {
+static void check_eval(struct tcl* tcl, const char* s, char* expected)
+{
   int destroy = 0;
   if (tcl == NULL) {
     struct tcl tmp;
@@ -14,7 +15,7 @@ static void check_eval(struct tcl *tcl, const char *s, char *expected) {
     FAIL("eval returned error: %s, (%s)\n", tcl_string(tcl->result), s);
   } else if (strcmp(tcl_string(tcl->result), expected) != 0) {
     FAIL("Expected %s, but got %s. (%s)\n", expected, tcl_string(tcl->result),
-         s);
+        s);
   } else {
     printf("OK: %s -> %s\n", s, expected);
   }
@@ -23,7 +24,8 @@ static void check_eval(struct tcl *tcl, const char *s, char *expected) {
   }
 }
 
-static void test_subst() {
+static void test_subst()
+{
   printf("\n");
   printf("###################\n");
   printf("### SUBST TESTS ###\n");
@@ -59,10 +61,10 @@ static void test_subst() {
   /* This is an error in TCL, but works in Picol */
   check_eval(NULL, "set foo {hello world}", "hello world");
   check_eval(NULL,
-             "set foo {hello world}; set bar \"qux $foo\"; subst $foo$bar",
-             "hello worldqux hello world");
+      "set foo {hello world}; set bar \"qux $foo\"; subst $foo$bar",
+      "hello worldqux hello world");
   check_eval(NULL, "set a f; set b {o}; set $a$b$b [subst \"hello\"]; set foo",
-             "hello");
+      "hello");
   check_eval(NULL, "set {a \"b\"} hello; subst ${a \"b\"}", "hello");
   check_eval(NULL, "set \"a b\" hello; subst ${a b}", "hello");
 

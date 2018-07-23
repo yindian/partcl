@@ -4,10 +4,10 @@
 #include "tcllib.c"
 
 int status = 0;
-#define FAIL(...)                                                              \
-  do {                                                                         \
-    printf("FAILED: " __VA_ARGS__);                                            \
-    status = 1;                                                                \
+#define FAIL(...)                   \
+  do {                              \
+    printf("FAILED: " __VA_ARGS__); \
+    status = 1;                     \
   } while (0)
 
 #include "tcl_test_lexer.h"
@@ -18,7 +18,8 @@ int status = 0;
 
 #include "tcl_test_math.h"
 
-int main() {
+int main()
+{
   test_lexer();
   test_subst();
   test_flow();

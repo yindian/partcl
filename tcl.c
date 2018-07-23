@@ -10,10 +10,11 @@
 
 #define CHUNK 1024
 
-int main() {
+int main()
+{
   struct tcl tcl;
   int buflen = CHUNK;
-  char *buf = malloc(buflen);
+  char* buf = malloc(buflen);
   int i = 0;
 
   tcl_init(&tcl);
@@ -30,7 +31,8 @@ int main() {
 
     buf[i++] = inp;
 
-    tcl_each(buf, i, 1) {
+    tcl_each(buf, i, 1)
+    {
       if (p.token == TERROR && (p.to - buf) != i) {
         memset(buf, 0, buflen);
         i = 0;
@@ -39,7 +41,7 @@ int main() {
         int r = tcl_eval(&tcl, buf, strlen(buf));
         if (r != FERROR) {
           printf("result> %.*s\n", tcl_length(tcl.result),
-                 tcl_string(tcl.result));
+              tcl_string(tcl.result));
         } else {
           printf("?!\n");
         }
