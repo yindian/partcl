@@ -1,0 +1,3 @@
+[submodule "empack"]
+	path = empack
+	url = git@github.com:elcritch/empack.git

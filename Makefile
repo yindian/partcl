@@ -1,11 +1,11 @@
 CC ?= clang
-CFLAGS ?= -Os -Wall -std=c99 -pedantic -DTCL_STANDALONE
-LDFLAGS ?= -Os
+CFLAGS ?= -O3 -Wall -std=c99 -pedantic -DTCL_STANDALONE
+LDFLAGS ?= 
 
 TCLBIN := tcl
 
 TEST_CC := clang
-TEST_CFLAGS := -O0 -g -std=c11 -pedantic -DTCL_TEST
+TEST_CFLAGS := -O3 -g -std=c99 -pedantic -DTCL_TEST
 TEST_LDFLAGS := $(TEST_CFLAGS)
 TCLTESTBIN := tcl_test
 

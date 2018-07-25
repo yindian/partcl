@@ -17,179 +17,168 @@
 #endif
 
 struct tcl;
-int tcl_eval(struct tcl* tcl, const char* s, size_t len);
 
-tcl_token_t tcl_next(const char* s,
-                     size_t n,
-                     const char** from,
-                     const char** to,
-                     int* q)
-{
-  unsigned int i = 0;
-  int depth = 0;
-  char open;
-  char close;
-
-  DBG("tcl_next(%.*s)+%d+%d|%d\n", n, s, *from - s, *to - s, *q);
-
-  /* Skip leading spaces if not quoted */
-  int qq = *q;
-
-  for (; !qq && n > 0 && tcl_is_space(*s); s++, n--) {
-  }
-  *from = s;
-  /* Terminate command if not quoted */
-  if (!qq && n > 0 && tcl_is_end(*s)) {
-    *to = s + 1;
-    return TCMD;
-  }
-  if (*s == '$') { /* Variable token, must not start with a space or quote */
-    if (tcl_is_space(s[1]) || s[1] == '"') {
-      return TERROR;
-    }
-
-    // heh?
-    *q = 0;
-    int r = tcl_next(s + 1, n - 1, to, to, q);
-    *q = mode;
-
-    return ((r == TWORD && qq) ? TPART : r);
-  }
-
-  if (*s == '[' || (!qq && *s == '{')) {
-    /* Interleaving pairs are not welcome, but it simplifies the code */
-    open = *s;
-    close = (open == '[' ? ']' : '}');
-    for (i = 0, depth = 1; i < n && depth != 0; i++) {
-      if (i > 0 && s[i] == open) {
-        depth++;
-      } else if (s[i] == close) {
-        depth--;
-      }
-    }
-  } else if (*s == '"') {
-    qq = !qq;
-    *q = qq;
-
-    *from = *to = s + 1;
-    if (qq) {
-      return TPART;
-    }
-    if (n < 2 || (!tcl_is_space(s[1]) && !tcl_is_end(s[1]))) {
-      return TERROR;
-    }
-    *from = *to = s + 1;
-    return TWORD;
-  } else {
-    while (i < n && (qq || !tcl_is_space(s[i])) && !tcl_is_special(s[i], qq)) {
-      i++;
-    }
-  }
-  *to = s + i;
-  if (i == n) {
-    return TERROR;
-  }
-  if (qq) {
-    return TPART;
-  }
-  return (tcl_is_space(s[i]) || tcl_is_end(s[i])) ? TWORD : TPART;
-}
+typedef stream_t tcl_data;
 
 /* ------------------------------------------------------- */
 /* ------------------------------------------------------- */
-/* ------------------------------------------------------- */
-/* ------------------------------------------------------- */
-/* ------------------------------------------------------- */
 
-static inline void* tcl_malloc(size_t n) { return TCL_MALLOC(n); }
+static inline void* tcl_malloc(tcl_size_t n) { return TCL_MALLOC(n); }
 static inline void tcl_free(void* v) { TCL_FREE(v); }
 static inline void* tcl_realloc(void* v, int n) { return TCL_REALLOC(v, n); }
 
-char* tcl_append_string(char* v, const char* s, size_t len)
+tcl_data* tcl_data_alloc(size_t len)
 {
-  size_t n = tcl_length(v);
-  v = tcl_realloc(v, n + len + 1);
-  memset((char*)tcl_string(v) + n, 0, len + 1);
-  strncpy((char*)tcl_string(v) + n, s, len);
-  return v;
+  tcl_data stream = tcl_malloc(sizeof(tcl_data));
+  stream->buf = tcl_malloc(len);
+  stream->len = len;
+  stream->pos = 0;
+  stream->max = 0;
 }
 
-char* tcl_append(char* v, char* tail)
+tcl_data* tcl_data_alloc_nil()
 {
-  v = tcl_append_string(v, tcl_string(tail), tcl_length(tail));
-  tcl_free(tail);
-  return v;
+  tcl_data *buf = tcl_data_alloc(1);
+  msgpck_write_nil(buf);
+  return buf;
 }
 
-char* tcl_alloc(const char* s, size_t len)
+tcl_data* tcl_data_dup(tcl_data *buf)
 {
-  return tcl_append_string(NULL, s, len);
+  ssize_t len = buf->len;
+  tcl_data *copy = tcl_data_alloc(len);
+  memcpy(copy->buf, buf->buf, len);
+  return copy;
 }
 
-char* tcl_dup(char* v)
+tcl_data tcl_data_clone(tcl_data *buf)
 {
-  return tcl_alloc(tcl_string(v), tcl_length(v));
+  tcl_data clone;
+
+  clone->len = buf->len;
+  clone->max = buf->max;
+  clone->pos = buf->pos;
+
+  return clone;
 }
 
-char* tcl_list_alloc() { return tcl_alloc("", 0); }
 
-int tcl_list_length(char* v)
+void tcl_data_free(tcl_data *buf) {
+  free(buf->buf);
+  free(buf);
+}
+
+/* ------------------------------------------------------- */
+/* ------------------------------------------------------- */
+/* ------------------------------------------------------- */
+
+int tcl_list_length(tcl_data* v)
 {
-  int count = 0;
-  tcl_each(tcl_string(v), tcl_length(v) + 1, 0)
-  {
-    if (p.token == TWORD) {
-      count++;
-    }
+  ssize_t array_size;
+
+  tcl_data clone = tcl_data_clone(v);
+
+  if (msgpck_read_array_size(&clone, &array_size))
+    return array_size;
+  else
+    return -1;
+}
+
+tcl_token_t tcl_next(tcl_data* buf)
+{
+  msgpck_type_t type;
+  bool status;
+
+  status = msgpck_skip_next(buf, &type);
+
+  if (!status)
+    return TERROR;
+
+  switch (type) {
+
+  case msgpck_empty:
+    return TCMD;
+
+  case msgpck_nil:
+  case msgpck_bool:
+  case msgpck_bin:
+  case msgpck_string:
+  case msgpck_sint:
+  case msgpck_uint:
+  case msgpck_array:
+  case msgpck_map:
+    return TWORD;
+
+  default:
+    return TERROR;
   }
-  return count;
+
+  return TERROR;
 }
 
-void tcl_list_free(char* v) { free(v); }
-
-char* tcl_list_at(char* v, int index)
+int tcl_result(struct tcl* tcl, int flow, tcl_data* result)
 {
+  DBG("tcl_result %.*buf, flow=%d\n", tcl_length(result), tcl_string(result), flow);
+  tcl_free(tcl->result);
+  tcl->result = result;
+  return flow;
+}
+
+
+tcl_data* tcl_subst(tcl_data buf, ssize_t len)
+{
+  msgpck_type_t ntype = msgpck_what_next(buf);
+  uint32_t n;
+  bool r = true;
+
+  switch (ntype ) {
+  case msgpck_map:
+    r &= msgpck_read_map_size(buf, &n);
+    r &= msgpck_read_nil(buf);
+    r &= tcl_next(buf) != TERROR;
+    return tcl_result(tcl, FNORMAL, tcl_alloc(buf + 1, len - 2));
+  }
+
+  tcl_data *copy = tcl_alloc_stream(lstlen);
+  return copy;
+}
+
+tcl_data* tcl_list_at(tcl_data* data_list, int index)
+{
+  bool status = true;
+  uint32_t array_size;
+  msgpck_type_t mtype;
+
+  tcl_data buf = tcl_data_clone(data_list);
+  status = msgpck_read_array_size(buf, &array_size);
+
+  if (!status || array_size <= index)
+    return NULL;
+
+  uint8_t start_pos = buf->pos;
+
   int i = 0;
-  tcl_each(tcl_string(v), tcl_length(v) + 1, 0)
-  {
-    if (p.token == TWORD) {
-      if (i == index) {
-        if (p.from[0] == '{') {
-          return tcl_alloc(p.from + 1, p.to - p.from - 2);
-        }
-        return tcl_alloc(p.from, p.to - p.from);
+  while ( (mtype = msgpck_what_next(buf)) != msgpck_empty) {
+    status = msgpck_skip_next(buf, &mtype);
+
+    if (!status)
+      return NULL;
+
+    if (index == i++) {
+      if (ttype == msgpck_map) {
+        msgpck_read_nil(buf);
+        
       }
-      i++;
+      return tcl_data_slice(v);
     }
   }
+
+
   return NULL;
 }
 
-char* tcl_list_append(char* v, char* tail)
+char* tcl_list_append(tcl_data *v, char* tail)
 {
-  if (tcl_length(v) > 0) {
-    v = tcl_append(v, tcl_alloc(" ", 2));
-  }
-  if (tcl_length(tail) > 0) {
-    int q = 0;
-    const char* p;
-    for (p = tcl_string(tail); *p; p++) {
-      if (tcl_is_space(*p) || tcl_is_special(*p, 0)) {
-        q = 1;
-        break;
-      }
-    }
-    if (q) {
-      v = tcl_append(v, tcl_alloc("{", 1));
-    }
-    v = tcl_append(v, tcl_dup(tail));
-    if (q) {
-      v = tcl_append(v, tcl_alloc("}", 1));
-    }
-  } else {
-    v = tcl_append(v, tcl_alloc("{}", 2));
-  }
-  return v;
 }
 
 /* ----------------------------- */
@@ -197,29 +186,38 @@ char* tcl_list_append(char* v, char* tail)
 /* ----------------------------- */
 /* ----------------------------- */
 
-struct tcl_env* tcl_env_alloc(struct tcl_env* parent)
+tcl_env_t* tcl_env_alloc(tcl_env_t* parent)
 {
-  struct tcl_env* env = tcl_malloc(sizeof(*env));
+  tcl_env_t* env = tcl_malloc(sizeof(struct tcl_env));
+
   env->vars = NULL;
   env->parent = parent;
+
   return env;
 }
 
-struct tcl_var* tcl_env_var(struct tcl_env* env, char* name)
+tcl_var_t* tcl_env_var_alloc(tcl_env_t* env, tcl_atom_t name)
 {
-  struct tcl_var* var = tcl_malloc(sizeof(struct tcl_var));
-  var->name = tcl_dup(name);
+  tcl_var_t* var = tcl_malloc(sizeof(tcl_var_t));
+
+  var->name = name;
   var->next = env->vars;
-  var->value = tcl_alloc("", 0);
+
+  var->value = tcl_data_alloc_nil();
+
+  msgpck_write_nil(var->value);
+
+  // update var list
   env->vars = var;
+
   return var;
 }
 
-struct tcl_env* tcl_env_free(struct tcl_env* env)
+tcl_env_t* tcl_env_free(tcl_env_t* env)
 {
-  struct tcl_env* parent = env->parent;
+  tcl_env_t* parent = env->parent;
   while (env->vars) {
-    struct tcl_var* var = env->vars;
+    tcl_var_t* var = env->vars;
     env->vars = env->vars->next;
     tcl_free(var->name);
     tcl_free(var->value);
@@ -229,10 +227,10 @@ struct tcl_env* tcl_env_free(struct tcl_env* env)
   return parent;
 }
 
-char* tcl_var(struct tcl* tcl, char* name, char* v)
+char* tcl_var(struct tcl* tcl, char* name, tcl_data* v)
 {
-  DBG("var(%s := %.*s)\n", tcl_string(name), tcl_length(v), tcl_string(v));
-  struct tcl_var* var;
+  DBG("var(%buf := %.*buf)\n", tcl_string(name), tcl_length(v), tcl_string(v));
+  tcl_var_t* var;
   for (var = tcl->env->vars; var != NULL; var = var->next) {
     if (strcmp(var->name, tcl_string(name)) == 0) {
       break;
@@ -251,58 +249,58 @@ char* tcl_var(struct tcl* tcl, char* name, char* v)
 
 int tcl_result(struct tcl* tcl, int flow, char* result)
 {
-  DBG("tcl_result %.*s, flow=%d\n", tcl_length(result), tcl_string(result),
+  DBG("tcl_result %.*buf, flow=%d\n", tcl_length(result), tcl_string(result),
       flow);
   tcl_free(tcl->result);
   tcl->result = result;
   return flow;
 }
 
-int tcl_subst(struct tcl* tcl, const char* s, size_t len)
+int tcl_subst(struct tcl* tcl, tcl_data *buf)
 {
-  DBG("subst(%.*s)\n", (int)len, s);
+  DBG("subst(%.*buf)\n", (int)len, buf);
   if (len == 0) {
     return tcl_result(tcl, FNORMAL, tcl_alloc("", 0));
   }
-  switch (s[0]) {
+  switch (buf[0]) {
   case '{':
     if (len <= 1) {
       return tcl_result(tcl, FERROR, tcl_alloc("", 0));
     }
-    return tcl_result(tcl, FNORMAL, tcl_alloc(s + 1, len - 2));
+    return tcl_result(tcl, FNORMAL, tcl_alloc(buf + 1, len - 2));
   case '$': {
     if (len >= MAX_VAR_LENGTH) {
       return tcl_result(tcl, FERROR, tcl_alloc("", 0));
     }
     char buf[5 + MAX_VAR_LENGTH] = "set ";
-    strncat(buf, s + 1, len - 1);
+    strncat(buf, buf + 1, len - 1);
     return tcl_eval(tcl, buf, strlen(buf) + 1);
   }
   case '[': {
-    char* expr = tcl_alloc(s + 1, len - 2);
+    char* expr = tcl_alloc(buf + 1, len - 2);
     int r = tcl_eval(tcl, tcl_string(expr), tcl_length(expr) + 1);
     tcl_free(expr);
     return r;
   }
   default:
-    return tcl_result(tcl, FNORMAL, tcl_alloc(s, len));
+    return tcl_result(tcl, FNORMAL, tcl_alloc(buf, len));
   }
 }
 
-int tcl_eval(struct tcl* tcl, const char* s, size_t len)
+int tcl_eval(struct tcl* tcl, tcl_data *buf)
 {
-  DBG("eval(%.*s)->\n", (int)len, s);
+  DBG("eval(%.*buf)->\n", (int)len, buf);
   char* list = tcl_list_alloc();
   char* cur = NULL;
-  tcl_each(s, len, 1)
+  tcl_each(buf, len, 1)
   {
-    DBG("tcl_next %d %.*s\n", p.token, (int)(p.to - p.from), p.from);
+    DBG("tcl_next %d %.*buf\n", p.token, (int)(p.to - p.from), p.from);
     switch (p.token) {
     case TERROR:
       DBG("eval: FERROR, lexer error\n");
       return tcl_result(tcl, FERROR, tcl_alloc("", 0));
     case TWORD:
-      DBG("token %.*s, length=%d, cur=%p (3.1.1)\n", (int)(p.to - p.from),
+      DBG("token %.*buf, length=%d, cur=%p (3.1.1)\n", (int)(p.to - p.from),
           p.from, (int)(p.to - p.from), cur);
       if (cur != NULL) {
         tcl_subst(tcl, p.from, p.to - p.from);
@@ -384,9 +382,9 @@ static int tcl_cmd_set(struct tcl* tcl, char* args, void* arg)
 static int tcl_cmd_subst(struct tcl* tcl, char* args, void* arg)
 {
   (void)arg;
-  char* s = tcl_list_at(args, 1);
-  int r = tcl_subst(tcl, tcl_string(s), tcl_length(s));
-  tcl_free(s);
+  char* buf = tcl_list_at(args, 1);
+  int r = tcl_subst(tcl, tcl_string(buf), tcl_length(buf));
+  tcl_free(buf);
   return r;
 }
 
