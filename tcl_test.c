@@ -31,12 +31,64 @@ void check_eval(struct tcl* tcl, const char* s, char* expected);
 #include <time.h>
 
 #include <stdio.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
 #include <time.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+const __int64 DELTA_EPOCH_IN_MICROSECS= 11644473600000000;
+struct timezone2 
+{
+  __int32  tz_minuteswest; /* minutes W of Greenwich */
+  BOOL     tz_dsttime;     /* type of dst correction */
+};
+
+struct timeval2 {
+__int32    tv_sec;         /* seconds */
+__int32    tv_usec;        /* microseconds */
+};
+
+int gettimeofday2(struct timeval2 *tv/*in*/, struct timezone2 *tz/*in*/)
+{
+  FILETIME ft;
+  __int64 tmpres = 0;
+  TIME_ZONE_INFORMATION tz_winapi;
+  int rez=0;
+
+   ZeroMemory(&ft,sizeof(ft));
+   ZeroMemory(&tz_winapi,sizeof(tz_winapi));
+
+    GetSystemTimeAsFileTime(&ft);
+
+    tmpres = ft.dwHighDateTime;
+    tmpres <<= 32;
+    tmpres |= ft.dwLowDateTime;
+
+    /*converting file time to unix epoch*/
+    tmpres /= 10;  /*convert into microseconds*/
+    tmpres -= DELTA_EPOCH_IN_MICROSECS; 
+    tv->tv_sec = (__int32)(tmpres*0.000001);
+    tv->tv_usec =(tmpres%1000000);
+
+
+   if (tz)
+   {
+    //_tzset(),don't work properly, so we use GetTimeZoneInformation
+    rez=GetTimeZoneInformation(&tz_winapi);
+    tz->tz_dsttime=(rez==2)?TRUE:FALSE;
+    tz->tz_minuteswest = tz_winapi.Bias + ((rez==2)?tz_winapi.DaylightBias:0);
+   }
+
+  return 0;
+}
+#define gettimeofday gettimeofday2
 #endif
 
 // thanks @jbenet -- https://gist.github.com/jbenet/1087739

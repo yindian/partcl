@@ -36,6 +36,14 @@ struct tcl_parser {
   for (struct tcl_parser p = { NULL, NULL, (s), (s) + (len), 0, TERROR };                                                  \
        p.start < p.end && (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to, &p.q)) != TERROR) || (skiperr)); \
        p.start = p.to)
+#define tcl_each_begin(s, len, skiperr) \
+{ \
+    struct tcl_parser p = { NULL, NULL, (s), (s) + (len), 0, TERROR }; \
+    for (; \
+       p.start < p.end && (((p.token = tcl_next(p.start, p.end - p.start, &p.from, &p.to, &p.q)) != TERROR) || (skiperr)); \
+       p.start = p.to)
+#define tcl_each_end \
+}
 
 typedef char tcl_value_t;
 

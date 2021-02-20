@@ -31,7 +31,7 @@ int main()
 
     buf[i++] = inp;
 
-    tcl_each(buf, i, 1)
+    tcl_each_begin(buf, i, 1)
     {
       if (p.token == TERROR && (p.to - buf) != i) {
         memset(buf, 0, buflen);
@@ -51,6 +51,7 @@ int main()
         break;
       }
     }
+    tcl_each_end;
   }
 
   free(buf);
