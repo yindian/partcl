@@ -161,7 +161,7 @@ int tcl_int(tcl_value_t* v) { return atoi(v); }
 tcl_value_t* tcl_append_string(tcl_value_t* v, const char* s, size_t len)
 {
   size_t n = tcl_length(v);
-  v = tcl_realloc(v, n + len + 1);
+  v = (tcl_value_t*)tcl_realloc(v, n + len + 1);
   memset((char*)tcl_string(v) + n, 0, len + 1);
   strncpy((char*)tcl_string(v) + n, s, len);
   return v;
@@ -254,7 +254,7 @@ tcl_value_t* tcl_list_append(tcl_value_t* v, tcl_value_t* tail)
 
 struct tcl_env* tcl_env_alloc(struct tcl_env* parent)
 {
-  struct tcl_env* env = tcl_malloc(sizeof(*env));
+  struct tcl_env* env = (struct tcl_env*)tcl_malloc(sizeof(*env));
   env->vars = NULL;
   env->parent = parent;
   return env;
@@ -262,7 +262,7 @@ struct tcl_env* tcl_env_alloc(struct tcl_env* parent)
 
 struct tcl_var* tcl_env_var(struct tcl_env* env, tcl_value_t* name)
 {
-  struct tcl_var* var = tcl_malloc(sizeof(struct tcl_var));
+  struct tcl_var* var = (struct tcl_var*)tcl_malloc(sizeof(struct tcl_var));
   var->name = tcl_dup(name);
   var->next = env->vars;
   var->value = tcl_alloc("", 0);
@@ -421,7 +421,7 @@ int tcl_eval(struct tcl* tcl, const char* s, size_t len)
 void tcl_register(struct tcl* tcl, const char* name, tcl_cmd_fn_t fn, int arity,
     void* arg)
 {
-  struct tcl_cmd* cmd = tcl_malloc(sizeof(struct tcl_cmd));
+  struct tcl_cmd* cmd = (struct tcl_cmd*)tcl_malloc(sizeof(struct tcl_cmd));
   cmd->name = tcl_alloc(name, strlen(name));
   cmd->fn = fn;
   cmd->arg = arg;
@@ -650,7 +650,7 @@ void tcl_init(struct tcl* tcl)
   tcl_register(tcl, "continue", tcl_cmd_flow, 1, NULL);
 #ifndef TCL_DISABLE_MATH
   {
-  char* math[] = { "+", "-", "*", "/", ">", ">=", "<", "<=", "==", "!=" };
+  const char* math[] = { "+", "-", "*", "/", ">", ">=", "<", "<=", "==", "!=" };
   unsigned int i;
   for (i = 0; i < (sizeof(math) / sizeof(math[0])); i++) {
     tcl_register(tcl, math[i], tcl_cmd_math, 3, NULL);
