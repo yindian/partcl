@@ -384,7 +384,9 @@ int tcl_eval(struct tcl* tcl, const char* s, size_t len)
       break;
     case TCMD:
       if (tcl_list_length(list) == 0) {
+#if 0
         tcl_result(tcl, FNORMAL, tcl_alloc("", 0));
+#endif
       } else {
         tcl_value_t* cmdname = tcl_list_at(list, 0);
         struct tcl_cmd* cmd = NULL;
@@ -454,7 +456,9 @@ static int tcl_cmd_puts(struct tcl* tcl, tcl_value_t* args, void* arg)
 {
   tcl_value_t* text = tcl_list_at(args, 1);
   puts(tcl_string(text));
+#if 0
   putchar('\n');
+#endif
   (void)arg;
   return tcl_result(tcl, FNORMAL, text);
 }
