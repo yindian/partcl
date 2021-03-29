@@ -70,6 +70,7 @@ tcl_value_t* tcl_alloc(const char* s, size_t len);
 tcl_value_t* tcl_dup(tcl_value_t* v);
 tcl_value_t* tcl_list_alloc();
 void tcl_list_free(tcl_value_t* v);
+int tcl_list_length(tcl_value_t* v);
 tcl_value_t* tcl_list_at(tcl_value_t* v, int index);
 tcl_value_t* tcl_list_append(tcl_value_t* v, tcl_value_t* tail);
 
