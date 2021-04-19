@@ -106,7 +106,7 @@ struct tcl_var* tcl_env_var(struct tcl_env* env, tcl_value_t* name);
 struct tcl_env* tcl_env_free(struct tcl_env* env);
 tcl_value_t* tcl_var(struct tcl* tcl, tcl_value_t* name, tcl_value_t* v);
 int tcl_result(struct tcl* tcl, int flow, tcl_value_t* result);
-int tcl_subst(struct tcl* tcl, const char* s, size_t len);
+int tcl_subst(struct tcl* tcl, const char* s, size_t len, int q);
 int tcl_eval(struct tcl* tcl, const char* s, size_t len);
 void tcl_register(struct tcl* tcl, const char* name, tcl_cmd_fn_t fn, int arity,
     void* arg);
