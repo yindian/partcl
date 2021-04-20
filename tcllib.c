@@ -15,7 +15,7 @@ typedef unsigned char uint8_t;
 #include <stdint.h>
 #endif
 
-#if 1
+#if 0
 #define DBG printf
 #else
 #define DBG(...)
@@ -234,6 +234,64 @@ tcl_value_t* tcl_unescape(const char* s, size_t len)
   return result;
 }
 
+tcl_value_t* tcl_list_escape(const char* s)
+{
+  tcl_value_t *result;
+  const char *p;
+  for (p = s; *p && *p != '{' && *p != '}' && *p != '$'; ++p) {
+  }
+  result = tcl_append_string(NULL, s, p - s);
+  while (*p) {
+    const char *q;
+    if (*p == '{') {
+      result = tcl_append_string(result, "$[", 2);
+    } else if (*p == '}') {
+      result = tcl_append_string(result, "$]", 2);
+    } else {
+      result = tcl_append_string(result, "$$", 2);
+    }
+    for (q = ++p; *p && *p != '{' && *p != '}' && *p != '$'; ++p) {
+    }
+    if (p > q) {
+      result = tcl_append_string(result, q, p - q);
+    }
+  }
+  return result;
+}
+
+tcl_value_t* tcl_list_unescape(const char* s, size_t len)
+{
+  tcl_value_t *result = tcl_append_string(NULL, s, len);
+  const char *p;
+  for (p = result; *p && *p != '$'; ++p) {
+  }
+  if (*p == '$') {
+    char *q = (char *) p++;
+    while (*p) {
+      switch (*p) {
+        case '[':
+          *q++ = '{';
+          break;
+        case ']':
+          *q++ = '}';
+          break;
+        default:
+          *q++ = *p;
+          break;
+      }
+      ++p;
+      while (*p && *p != '$') {
+        *q++ = *p++;
+      }
+      if (*p) {
+        ++p;
+      }
+    }
+    *q = '\0';
+  }
+  return result;
+}
+
 tcl_value_t* tcl_list_alloc() { return tcl_alloc("", 0); }
 
 int tcl_list_length(tcl_value_t* v)
@@ -259,7 +317,7 @@ tcl_value_t* tcl_list_at(tcl_value_t* v, int index)
     if (p.token == TWORD) {
       if (i == index) {
         if (p.from[0] == '{') {
-          return tcl_alloc(p.from + 1, p.to - p.from - 2);
+          return tcl_list_unescape(p.from + 1, p.to - p.from - 2);
         }
         return tcl_alloc(p.from, p.to - p.from);
       }
@@ -286,10 +344,10 @@ tcl_value_t* tcl_list_append(tcl_value_t* v, tcl_value_t* tail)
     }
     if (q) {
       v = tcl_append(v, tcl_alloc("{", 1));
-    }
-    v = tcl_append(v, tcl_dup(tail));
-    if (q) {
+      v = tcl_append(v, tcl_list_escape(tail));
       v = tcl_append(v, tcl_alloc("}", 1));
+    } else {
+      v = tcl_append(v, tcl_dup(tail));
     }
   } else {
     v = tcl_append(v, tcl_alloc("{}", 2));
